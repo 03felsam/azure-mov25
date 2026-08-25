@@ -1,6 +1,6 @@
 ## V34 - Driftsättning av Novatrix webbsida<br/>
 **Av Felix Samuelsson** </br>
-**Kurs: Microsoft Azure**  </br>
+**Kurs: Microsoft Azure** </br>
 Github Repo: https://github.com/03felsam/azure-mov25
 
 ## Mål 
