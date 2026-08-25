@@ -72,10 +72,10 @@ I detta fallet skapar jag gruppen **rg-novatrix-v34** i regionen **Sweden centra
 I följande kapitel kommer jag kommentera på vilka settings vi ska ändra och vara säkra är inställda resten av VM inställningarna är orörda.
 
 Navigera till Virtuella datorer och tryck på Skapa virtuell dator.
-![Skapa](SkapaVM.png)
+![Skapa](VM-Skapa.png)
 
 I början av VM skapandet ska vi välja premuration och resursgrupp. Samt ge ett bra beksrivande namn till exempel **vm-novatrix-web** och samma region som vi gjorde våran resursgrupp alltså **Sweden central**
-![namn](VM-RG-Namn-verision.png)
+![namn](VM-RG-Namn-Verision.png)
 
 Därefter väljer vi serverns operativsystem eller så kallad image och vi kommer använda oss av **Ubuntu Server** och storleken av Våran virtual machine komemr vara **Standard_B2ats_v2**
 ![info](VM-Image-Storlek.png)
@@ -142,14 +142,18 @@ För att verifiera att det funkade ska vi browsa till http://DIN_PUBLIKA_ID som 
 Där ska vi se en välkomstsida till Nginx som vi ska konfigurera i nästa steg till våra specifikationer.
 
 ## Steg 5: Redigera Nginx webbsida
-mappen med Nginx ligge på /var/www/html
 
+För att konfigurera webbsidan och HTML filen ska vi föst browsa till /var/www/html
+
+
+Därefter kan vi använda dir för att se vad namnet på filen är och gå in och edita den med **sudo nano NAMNET-PÅ-FILEN**
 ![html](HTML.png)
 
 ````
-sudo nano index.html
+sudo nano index.nginx-debian.html
 ````
-![Proof](Proof.png)
+innuti denna HTML editor används följande HTML koden för att ha lite input och val för webbsidan
+
 
 ````
 <!DOCTYPE html>
@@ -180,6 +184,8 @@ font-family: Tahoma, Verdana, Arial, sans-serif; }
 </html>
 ````
 
+Därefter kan vi browsa till våran webbsida igen och dubbelkolla om allting fungerar så borde det se ut såhär!
 
+![Proof](Proof.png)
 
 
