@@ -39,3 +39,18 @@ Scopes handlar om vad dina behörighet gäller på. Den rollen som assignas verk
 **Hel prenumeration** <br/>
 **En resursgrupp** <br/>
 **En resurs**  <br/>
+Scopes ärvs neråt!
+Det går inte att ta bort ärvning så tilldela så litet och smått som möjligt från början.
+
+Drift ska vara contrubutor på rg-novatrix
+Utveckling gruppen ska på reader på rg-novatrix
+Scope resursgruppen 
+Ingen får vara owner
+Var resurspecifik
+Minsta possible access
+Viktigt att städa
+
+Finns Jobbfuntionsroller och privligerade administratör roller
+
+Checklista imorgon
+Access från konton du skapade genom att logga in dom 
