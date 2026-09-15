@@ -1,90 +1,173 @@
-## V37 - Konfiguration av Storage <br/>
-**Av Felix Samuelsson** </br>
-**Kurs: Microsoft Azure** </br>
-Github Repo: https://github.com/03felsam/azure-mov25
+# V37 – Konfiguration av Storage
+
+**Av Felix Samuelsson**
+
+**Kurs: Microsoft Azure**
+
+GitHub Repo: [https://github.com/03felsam/azure-mov25](https://github.com/03felsam/azure-mov25)
 
 ## Mål
 
+- Skapa ett lagringskonto
+- Säkra åtkomst
+- Koppla formuläret till lagring
+- Verifiera resultatet under processen
 
-## Steg 1 
-Navigera till Lagringskonto | blob storage / storage account där du kan skapa ett blob konto 
+## Steg 1 – Skapa ett Storage Account
 
-I detta blobbkonto ska du skapa ett konto med ett Unikt namn i **hela** azure men bara små bokstäver och siffror är tillåtna med mellan 3 och 24 tecken
+Första steget i denna guide är att skapa ett lagringskonto som vi sedan kommer att bygga vidare på.
 
-Skapa sedan kontot i rätt region samt resursgrupp och denna primära tjänsten vi ska använda är azure blob storage samt standard prestanda och vi ska ha LRS som inställning.
+För att göra detta navigerar vi till **Storage accounts / Lagringskonton** i Azure, där vi kan skapa ett nytt lagringskonto.
 
-![](StorageAccount.png)
+I detta steg ska vi skapa ett konto med ett **unikt namn i hela Azure**. Namnet får endast innehålla små bokstäver och siffror och måste vara mellan 3 och 24 tecken långt.
 
-detta är det enda vi ska ändra nu så gå därefter och skapa gruppen
+I mitt fall använde jag namnet `stnovatrix17`. Ett unikt namn minskar risken för att namnet redan används av någon annan.
 
-Detta är våran lagringsplats vi kommer att använda
+Skapa sedan lagringskontot i samma region som den resursgrupp som skapades tidigare. I mitt fall är regionen **Sweden Central**.
 
-Navigera sedan till containrar och skapa en privat!
- jag kommer döpa min till arenden 
+Följande inställningar används:
 
- ![](containrar.png)
+- **Resource group:** `rg-novatrix-v34`
+- **Region:** Sweden Central
+- **Primary service:** Azure Blob Storage
+- **Performance:** Standard
+- **Redundancy:** LRS (Locally-redundant storage)
 
-Gå sedan in på containren som vi skapade och ladda upp ett exempel på fil
+![Storage Account](StorageAccount.png)
 
-då kan vi gå in på den nyuppladdade filen och hitta en URL som vi kan kopiera.
+Dessa är de huvudsakliga inställningarna vi behöver ändra i detta steg. När allt är checkat kan lagringskontot skapas.
 
-verifiering av detta görs genom resursgruppen och att se om den ligger där samt gå in på containern och se på overwiew om det är rätt region resursgrupp och LRS
- 
+Ett Storage Account fungerar som en central lagringsplats där vi bland annat kan lagra filer som Blob Storage-objekt på en central plats som är åtkommer genom webben.
 
- ## access
- genom att navigera till containern aenden vi skapade kan vi sedan gå iin på den delade bilden i detta fall och sedan trcyka på generera SAS eller generera delad åtkomsttruktur
+Efter att lagringskontot har skapats navigerar vi till **Containers** och skapar en ny container. Containern ska vara **privat**, så att objekten inte är publikt åtkomliga.
 
- där vi kan fylla i vilka tider samt rättiheter för länken 
+Jag döper min container till `arenden`, eftersom den kommer att användas för att lagra de supportärenden som skickas in via webbformuläret.
 
- ![](blob-SAS.png)
+![Containers](containrar.png)
 
- där du senare kan kopiera blob URL med SAS token 
+Gå sedan in i containern som skapades och ladda upp en exempel-fil. Jag använde min Instagram-profilbild som testfil.
 
+![Upload](upload.png)
 
+När filen har laddats upp kan vi öppna den och se Blob-URL:en till objektet. Denna URL kan användas för att adressera filen, men eftersom containern är privat går det inte att komma åt filen utan korrekt behörighet.
 
- Sätt upp RBAC
+Vi kommer senare att konfigurera olika säkerhetsmekanismer för att kontrollera vem som får åtkomst till filerna.
 
- Gå tillbaka till stnovatrix17 eller med andra ord vårat blob konto där du kan navigerara till IAM eller åtkomstkontroll fliken. Där du sedan kan gå in på rolltilldelnignar och trycka på plus för att lägga till en rolltilldelnign.
+Slutligen ska vi konfigurera lagringskontot genom att kontrollera att **Secure transfer required / Säker överföring krävs** är aktiverat och att **anonym blobåtkomst** inte är tillåten.
 
- Därefter ska vi lägga till rollen Storage Blob Data-läsare
-därefter ska vi assigna denna roll till våran VM vilket är en hanterad identitet vilket betyder om du inte kan adda din VM sätt på systemtilldelad identitiet på VM:en
- 
- slutligen dubbelkolla så allting stämmer och spara.
- ![](managedIdentity.png)
+![Verify configuration](Verify-konfiguration.png)
 
-därefter kan vi verifiera genom dessa bilder
+För att verifiera att allt är korrekt konfigurerat kontrollerar vi bland annat:
 
-![](WorkingLink.png)
-![](GeneralAccessDenied.png)
-![](SAS-timeout.png)
+- Rätt region
+- Rätt resursgrupp
+- Rätt prestandanivå
+- Rätt replikeringsalternativ, i detta fall LRS
 
+![Resource Group verification](RG-verifiering.png)
 
+![verification](verifierign-rightplace.png)
 
-Slutlig lösning genom att bash inte fungerade 
+## Access – Åtkomst och säkerhet
 
-## Så fick vi Flask att fungera
+För att begränsa åtkomsten till våra Blob-objekt ska vi först testa **SAS (Shared Access Signature)**. Eftersom anonym access inte är påsatt kommer detta vara det huvudsakliga sättet att se våra filer vi har laddat upp.
 
-Kontrollerade Flask-installationen
+Navigera till containern `arenden` som vi skapade tidigare och öppna den uppladdade testbilden.
 
+Där kan vi välja alternativet för att **generera SAS**.
+
+En SAS-token används för att skapa en tidsbegränsad åtkomst till ett specifikt objekt. När SAS-länken skapas kan vi bland annat ange:
+
+- När länken börjar gälla
+- När länken slutar gälla
+- Vilka rättigheter länken ska ha
+
+![Blob SAS](blob-SAS.png)
+
+När parametrarna är valda klickar vi på **Create / Skapa**. Azure genererar då en unik länk som fungerar under den angivna tidsperioden och med de rättigheter som valts.
+
+Här är ett exempel på en fungerande SAS-länk med en tidsbegränsning:
+
+![Working SAS link](WorkingLink.png)
+
+Om vi istället försöker använda den vanliga Blob-URL:en utan SAS-token nekas åtkomsten eftersom containern är privat.
+
+![General access denied](GeneralAccessDenied.png)
+
+När SAS-länkens giltighetstid har passerat kan länken inte längre användas för att komma åt objektet.
+
+![SAS timeout](SAS-timeout.png)
+
+## RBAC – Role-Based Access Control
+
+Nästa steg är att konfigurera **RBAC (Role-Based Access Control)** för att bestämma vilka identiteter som får hantera våra ärenden i Blob Storage.
+
+Detta görs genom att gå tillbaka till Storage Account `stnovatrix17` och navigera till **IAM / Access control (Åtkomstkontroll)**.
+
+Välj sedan **Role assignments / Rolltilldelningar** och klicka på **Add / Lägg till** för att skapa en ny rolltilldelning.
+
+Vi ska lägga till rollen:
+
+**Storage Blob Data Contributor**
+
+Denna roll ger identiteten behörighet att läsa, skriva och ändra Blob-data.
+
+Därefter tilldelar vi rollen till vår VM genom att välja en **Managed Identity** och ange vilken VM som ska använda rollen.
+
+Om VM:en inte går att välja behöver vi kontrollera att **System-assigned managed identity** är aktiverad på VM:en.
+
+När rätt identitet och roll har valts kontrollerar vi inställningarna och sparar rolltilldelningen.
+
+> **Observera:** Bilden nedan visar ett exempel från konfigurationen, men rollen på bilden är inte korrekt för detta steg. Den korrekta rollen ska vara **Storage Blob Data Contributor**.
+
+![Managed Identity](managedIdentity.png)
+
+## Skapa VM med Cloud-Init
+
+Slutligen ska vi skapa den VM som ska användas för webbapplikationen.
+
+Under skapandet av VM:en kan vi lägga till vår `cloud-init.txt` under:
+
+**Advanced → Custom data and cloud-init**
+
+På följande sätt:
+
+![VM creation with Cloud-Init](VMcreationcloud.png)
+
+Cloud-init-filen används för att automatiskt konfigurera VM:en vid skapandet.
+
+Den installerar bland annat Nginx, Python och de Python-paket som behövs för Flask-applikationen. Den skapar även webbplatsen, Flask-backenden och Nginx-konfigurationen som krävs för kommunikationen mellan webbformuläret och Blob Storage.
+
+På så sätt kan webbformuläret som vi byggt tidigare kommunicera med Flask-backenden och därefter lagra inskickade ärenden i Azure Blob Storage.
+
+### Flash tjänsten fungerade alldrig
+
+Dock gick inte denna Cloud-init-konfiguration hela vägen, eftersom Flask-applikationen startade inte korrekt på grund av att Flask inte var tillgängligt för den användare som körde systemd-tjänsten. Därför har jag laggt till denna extrabit på hur problemet löstes genom hjälp av AI och google. 
+Detta problemet uppstår nog inte om din VM skapas genom kod i azure, men jag kunde inte få det att fungera då jag inte hade gjort någon av VG delarna, därför blev det en väldigt konstig lösning som jag inte helt förstår mig på kodvis utan bara teoretiskt. 
+
+##
+
+Först kontrollerade vi om Flask var installerat genom:
+````
+journalctl -u arendeapp
+````
+men även
 ````
 python3 -m pip show flask
 ````
 Flask var installerat, men bara för användaren azureuser.
 
-Identifierade problemet
 
 Flask-applikationen kördes via systemd som användaren www-data. Därför kunde tjänsten inte hitta Flask som låg installerat i:
 
 **/home/azureuser/.local/lib/python3.12/site-packages**
 
-Installerade Flask och Azure-paketen för systemets Python
-Vi installerade:
-Flask </br>
-azure-identity </br>
-azure-storage-blob
+Därefter installerades Flask på rätt ställe:
+````
+sudo /usr/bin/python3 -m pip install --break-system-packages --ignore-installed blinker flask azure-identity azure-storage-blob
+````
 
-Verifierade installationen
-Vi kontrollerade att www-data kunde importera Flask:
+Efteråt kontrollerade vi att www-data kunde importera Flask:
 
 ````
 sudo -u www-data /usr/bin/python3 -c "import flask; print(flask.__version__)"
@@ -92,16 +175,38 @@ sudo -u www-data /usr/bin/python3 -c "import flask; print(flask.__version__)"
 
 Startade om Flask-tjänsten
 
+````
 sudo systemctl restart arendeapp
-
+````
 Kontrollerade loggarna
 Med:
 ````
 journalctl -u arendeapp
 ````
-kunde vi se att Flask nu startade korrekt.
+Därför kunde vi se att Flask nu startade korrekt.
 
-Resultat: Flask-backendens 502-fel försvann och webbservern kunde kommunicera med Flask. Det efterföljande felet visade sig vara ett separat behörighetsproblem mot Azure Blob Storage, vilket löstes genom att ge VM:ens Managed Identity rollen Storage Blob Data Contributor.
+ Jag försökte mitt bästa med att få med alla kod jag använde som fungerade men jag skapade om och tog ner min VM ett flertal gånger över ett flertal dagar och skulle ha dokumenterat bättre och kan inte garantera att det blev 100% rätt.
+
+Resultat: Flask-backendens 502-fel försvann och webbservern kunde kommunicera med Flask. Jag fick ett efterföljande fel som visade sig vara ett separat behörighetsproblem mot Azure Blob Storage, vilket löstes genom att ge VM:ens Managed Identity rollen Storage Blob Data Contributor.
+
+Slutligen fungerade hela systemet.
+
+![](siteworking.png)
+
+![](arendenklar.png)
+ 
+ 
+
+ ##
+ Nedanför har vi cloud-init.txt filen vilket användes för deployment här: 
+
+
+>VIKTIGT 
+FÖR ATT DETTA SKA APPLICERAS I EN ANNAN MILJÖ ÄNDRA FÖLJANDE: </br>
+STORAGE_ACCOUNT = "stnovatrix17"</br>
+OCH</br>
+CONTAINER = "arenden"</br>
+Till dina lokala namn på ditt storage konto och container.
 ````
 
 #cloud-config
