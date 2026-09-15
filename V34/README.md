@@ -98,7 +98,7 @@ Därefter kommer vi använda följande 3 kommandon i ordningen som de finns för
 
 ![SSH](SSH.png)
 ````
-icacls.\din-nyckel.pem /inhertiance:r
+icacls .\din-nyckel.pem /inheritance:r
 ````
 ````
 icacls .\din-nyckel.pem /grant:r "$($env:USERNAME):R"
