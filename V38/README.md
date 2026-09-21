@@ -1,30 +1,47 @@
-# Startpaket, IaC med ARM-templates (v38)
+# V38 – IAC med ARM templates
 
-Det här är en startpunkt att bygga vidare på, inte en färdig lösning. Filerna visar mönstret för hur en ARM-template och en Bicep-fil ser ut, så att du slipper stirra på ett tomt dokument. Själva miljön bygger du själv, det är det du ska lära dig den här veckan, och det är grunden för examinationen.
+**Av Felix Samuelsson**
 
-Allt deployas mot din resursgrupp (rg-novatrix i exemplen), enklast i Cloud Shell.
+**Kurs: Microsoft Azure**
 
-## Filerna
+GitHub Repo: [https://github.com/03felsam/azure-mov25](https://github.com/03felsam/azure-mov25)
 
-- `storage.bicep`, ett enda storage account skrivet i Bicep. Kortast av allt, bra för att se strukturen.
-    - `az deployment group create -g rg-novatrix --template-file storage.bicep`
-- `azuredeploy-enkel.json`, samma storage account i ARM JSON. Den första mallen du kan deploya för att se hela flödet från fil till resurs.
-    - `az deployment group create -g rg-novatrix --template-file azuredeploy-enkel.json --parameters storageName=stn+dittnamn`
-- `azuredeploy-parametriserad.json` plus `azuredeploy.parameters.json`, samma enda resurs men parametriserad. Här ser du hur parametrar, allowedValues och en parameterfil hänger ihop.
-    - Förhandsgranska: `az deployment group what-if -g rg-novatrix --template-file azuredeploy-parametriserad.json --parameters @azuredeploy.parameters.json`
-    - Deploya: `az deployment group create -g rg-novatrix --template-file azuredeploy-parametriserad.json --parameters @azuredeploy.parameters.json`
-- `miljo-skelett.json`, ett tomt men giltigt skelett med rätt struktur ($schema, parameters, variables, resources, outputs). Det är här du bygger din egen miljö.
 
-## Vad du ska bygga själv i skelettet
+## git
 
-Använd de enkla exemplen som mönster. Varje resurs har samma fem fält: type, apiVersion, name, location och properties.
+klona github in i bash azure 
 
-- För godkänt: lägg till en NSG med en webbregel (portar 80 och 443), ett VNet med ett subnät, och ett storage account. Gör namn och region till parametrar.
-- För väl godkänt: ta med huvudsakligen hela miljön (även en VM), koppla ihop resurserna med dependsOn, och se till att allt kan återskapas från ditt repo utan klick i portalen.
+gh auth login
 
-## Kom ihåg
+gör guide
 
-- Storage-kontonamn måste vara globalt unikt och med små bokstäver.
-- Kör alltid what-if innan en skarp deploy, och verifiera i portalen efteråt.
-- Committa ofta med tydliga meddelanden, historiken är en del av inlämningen.
-- Inga hemligheter (lösenord, nycklar) i klartext i ett publikt repo.
+clone repo 
+browsa till v38/ där du har json filerna för deployment
+
+
+## Exempel på skapning.
+skapa storage account genom cloudshell json azuredeploy-enkel.json med unik parameter stnovatrix1706 i detta fallet <br/>
+
+````
+az deployment group create -g rg-novatrix-v34 --template-file azuredeploy-enkel.json --parameters storageName=stnovatrix1706
+````
+Verifiera sedan om det fungerade genom **"provisioningState": "Succeeded",**
+och sedan manuell verifiering att allting skapades på rätt sätt i portalen
+
+eller genom följande kod som listar all deployment i resursgruppne du specifierar
+```` 
+az deployment group list --resource-group rg-novatrix-v34 -o table
+````
+
+### Steg att göra innnan deploymnet
+
+Verifiering genom kod 
+
+Du kan göra en **what if** vilket kör en teoretisk verision av vad som skulle hända.
+````
+az deployment group validate
+````
+````
+az deployment group what if
+````
+## Kod 
