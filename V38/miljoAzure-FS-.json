@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.3.3",
+  "contentVersion": "1.0.3.4",
   "metadata": {
     "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
   },
@@ -20,7 +20,7 @@
     "storageName": "[concat('st', parameters('namePrefix'), uniqueString(resourceGroup().id))]",
     "vnetName": "[concat('vnet-', parameters('namePrefix'))]",
     "nsgName" : "[concat('nsg-', parameters('namePrefix'))]",
-    "blobName" : "[concat('Arenden-', parameters('namePrefix'))]",
+    "blobName" : "[concat('-arenden-', parameters('namePrefix'))]",
     "NICName" : "[concat('nic-', parameters('namePrefix'))]",
     "subnetName" : "[concat('snet-', parameters('namePrefix'))]"
 
@@ -131,7 +131,7 @@
     {
       "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
       "apiVersion": "2023-05-01",
-      "name": "[variables('blobName')]",
+      "name": "[concat(variables('storageName'), '/default/', variables('blobName'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
         ],
