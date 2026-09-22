@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.1.1",
+  "contentVersion": "1.0.2.1",
   "metadata": {
     "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
   },
@@ -79,7 +79,7 @@
         },
         "subnets": [
           {
-            "name": "snet-web",
+            "name": "[concat('snet-', parameters('namePrefix'))]",
             "properties": {
               "addressPrefix": "10.0.1.0/24",
               "networkSecurityGroup": {
@@ -89,6 +89,30 @@
           }
         ]
       }
+    },
+    {
+      "type": "Microsoft.network/networkInterfaces",
+      "apiVersion": "2024-07-01",
+      "name": "[concat('nic-', variables('vnetName'))]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), concat('snet-', parameters('namePrefix')))]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ]
+
+      }
+          
     }
   ],
   "outputs": {
