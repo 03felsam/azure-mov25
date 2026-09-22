@@ -51,3 +51,6 @@ Saker vi ska bygga i ordning
 - VLAN - Subnet - NSG - NIC
 - Storage account and blobcontainer
 - Vm (möjligtvis med cloud-init.txt )
+
+
+az deployment group create -g novatrix-test --template-file miljoAzure-FS-.json
