@@ -93,7 +93,7 @@
     {
       "type": "Microsoft.network/networkInterfaces",
       "apiVersion": "2024-07-01",
-      "name": "[concat('nic-', variables('vnetName'))]",
+      "name": "[concat('nic-', parameters('namePrefix'))]",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -110,9 +110,7 @@
             }
           }
         ]
-
-      }
-          
+      } 
     }
   ],
   "outputs": {
