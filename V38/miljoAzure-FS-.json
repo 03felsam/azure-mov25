@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.2",
+  "contentVersion": "1.0.0.3",
   "metadata": {
     "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
   },
@@ -26,7 +26,7 @@
   "resources": [
     {
       "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2023-05-01",
+      "apiVersion": "2024-07-01",
       "name": "[variables('nsgName')]",
       "location": "[parameters('location')]",
       "properties": {
@@ -51,7 +51,7 @@
               "protocol": "Tcp",
               "direction": "Inbound",
               "access": "Allow",
-              "sourceAddressPrefix": " 83.251.180.30/32",
+              "sourceAddressPrefix": "83.251.180.30/32",
               "sourcePortRange": "*",
               "destinationAddressPrefix": "*",
               "destinationPortRange": "22"
