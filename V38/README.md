@@ -110,6 +110,9 @@ Detta leder till att jag kan kontrollera templaten innan jag kör den riktiga de
 
 Detta börs alltid användas innan du deployar någonting i din azure miljö.
 
+I följande bild kan du sett exempel på hur mycket som kommer ändras med din what if.
+![](VerifyWhat-if.png)
+
 ---
 
 # Deployment
@@ -417,8 +420,10 @@ Den slutliga templaten deployas med:
 ```bash
 az deployment group create -g novatrix-test --template-file miljoAzure-FS-.json
 ```
+Om allting har gått som planerat och gått bra borde du se denna text med det viktiga är att se om **ProvisioninState: Succeeded** stämmer.
+![](VerifieringCreate.png)
 
-Efter deployment kontrollerar jag att deploymenten lyckades.
+Efter deployment kontrollerar jag att deploymenten lyckades genom andra sätt även om den säger att den var en success.
 
 Jag kan exempelvis använda:
 
@@ -427,10 +432,6 @@ az deployment group list --resource-group novatrix-test -o table
 ```
 
 Jag kontrollerar även att resurserna finns i Resource Groupen. Genom verifiering i portalen dä jag checkar saker som att alla resurser skapades i rätt region.
-
-```bash
-az resource list --resource-group novatrix-test -o table
-```
 
 ---
 
