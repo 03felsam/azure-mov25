@@ -23,8 +23,6 @@
     "blobName": "[toLower(concat('arenden-', parameters('namePrefix')))]",
     "NICName" : "[concat('nic-', parameters('namePrefix'))]",
     "subnetName" : "[concat('snet-', parameters('namePrefix'))]"
-
-
     
   },
   "resources": [
