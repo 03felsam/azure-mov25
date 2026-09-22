@@ -7,7 +7,7 @@
   "parameters": {
     "namePrefix": {
       "type": "string",
-      "defaultValue": "novatrix",
+      "defaultValue": "novatrix-test",
       "metadata": { "description": "Prefix for alla resursnamn, sa att allt hanger ihop." }
     },
     "location": {
@@ -17,9 +17,20 @@
     }
   },
   "variables": {
+    "storageName": "[concat('st', parameters('namePrefix'), uniqueString(resourceGroup().id))]",
+    "vnetName": "[concat('vnet-', parameters('namePrefix'))]",
+    "nsgName" : "[concat('nsg-', parameters('namePrefix'))]",
+    "rgName" : "[concat('rg-', parameters('namePrefix'))]"
+    
   },
   "resources": [
+    {
+      "type": "Microsoft.resources/resourceGroups",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('rgName')]",
+      "location": "[parameters('location')]"
+    }
   ],
   "outputs": {
-  }
+  } 
 }

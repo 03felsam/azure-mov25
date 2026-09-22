@@ -45,3 +45,9 @@ az deployment group validate
 az deployment group what if
 ````
 ## Kod 
+
+Saker vi ska bygga i ordning
+- Resource Group
+- VLAN - Subnet - NSG - NIC
+- Storage account and blobcontainer
+- Vm (möjligtvis med cloud-init.txt )
