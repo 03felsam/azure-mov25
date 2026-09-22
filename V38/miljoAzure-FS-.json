@@ -7,7 +7,7 @@
   "parameters": {
     "namePrefix": {
       "type": "string",
-      "defaultValue": "novatrix-test",
+      "defaultValue": "novatrix",
       "metadata": { "description": "Prefix for alla resursnamn, sa att allt hanger ihop." }
     },
     "location": {
