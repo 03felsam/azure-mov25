@@ -475,7 +475,7 @@ Template använder parametrar och variabler för att göra lösningen återanvä
 
 Resten av resurserna ligger i samma ARM Template och skapas från samma deployment.
 
--- 
+---
 
 # Testa att återskapa miljön
 
@@ -496,7 +496,12 @@ az deployment group create --resource-group novatrix-test --template-file miljoA
 På detta sätt behöver jag inte skapa resurserna manuellt igenom Azure Portal.
 
 ---
+# Git
 
+För att kunna bygga denna ARM template på ett säkert och snabbt sätt använder vi github som en centralplats för sparning av ändringar och en loggnings verktyg. 
 
+I exemplet nedanför kan du se hur jag committar ganska regelbundet eller när man testar en ändring av koden gör man en commit. Detta hjälper utvecklingen av koden genom att identifiera vilka ändringar som orsakade att koden gick sönder.
+Detta är ännu viktigare när ett flertal personer jobbar på samma projekt. 
 
+![](GitCommitHistory.png)
 
