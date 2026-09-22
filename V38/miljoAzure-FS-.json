@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.3.2",
+  "contentVersion": "1.0.3.3",
   "metadata": {
     "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
   },
@@ -20,7 +20,11 @@
     "storageName": "[concat('st', parameters('namePrefix'), uniqueString(resourceGroup().id))]",
     "vnetName": "[concat('vnet-', parameters('namePrefix'))]",
     "nsgName" : "[concat('nsg-', parameters('namePrefix'))]",
-    "rgName" : "[concat('rg-', parameters('namePrefix'))]"
+    "blobName" : "[concat('Arenden-', parameters('namePrefix'))]",
+    "NICName" : "[concat('nic-', parameters('namePrefix'))]",
+    "subnetName" : "[concat('snet-', parameters('namePrefix'))]"
+
+
     
   },
   "resources": [
@@ -79,7 +83,7 @@
         },
         "subnets": [
           {
-            "name": "[concat('snet-', parameters('namePrefix'))]",
+            "name": "[variables('subnetName')]",
             "properties": {
               "addressPrefix": "10.0.1.0/24",
               "networkSecurityGroup": {
@@ -93,7 +97,7 @@
     {
       "type": "Microsoft.network/networkInterfaces",
       "apiVersion": "2024-07-01",
-      "name": "[concat('nic-', parameters('namePrefix'))]",
+      "name": "[variables('NICName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -104,7 +108,7 @@
             "name": "ipconfig1",
             "properties": {
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), concat('snet-', parameters('namePrefix')))]"
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
               },
               "privateIPAllocationMethod": "Dynamic"
             }
@@ -123,7 +127,18 @@
         "minimumTlsVersion": "TLS1_2",
         "allowBlobPublicAccess": false
       }
-    }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('blobName')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        ],
+      "properties": {
+          "publicAccess": "None"
+        }
+}
   ],
   "outputs": {
     "storageAccountName": {
