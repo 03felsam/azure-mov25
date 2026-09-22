@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.3.4",
+  "contentVersion": "1.0.3.5",
   "metadata": {
     "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
   },
@@ -17,10 +17,10 @@
     }
   },
   "variables": {
-    "storageName": "[concat('st', parameters('namePrefix'), uniqueString(resourceGroup().id))]",
+    "storageName": "[substring(concat('st', toLower(parameters('namePrefix')), uniqueString(resourceGroup().id)), 0, 24)]",
     "vnetName": "[concat('vnet-', parameters('namePrefix'))]",
     "nsgName" : "[concat('nsg-', parameters('namePrefix'))]",
-    "blobName" : "[concat('-arenden-', parameters('namePrefix'))]",
+    "blobName": "[toLower(concat('arenden-', parameters('namePrefix')))]",
     "NICName" : "[concat('nic-', parameters('namePrefix'))]",
     "subnetName" : "[concat('snet-', parameters('namePrefix'))]"
 
