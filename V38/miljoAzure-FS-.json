@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
+  "contentVersion": "1.0.0.2",
   "metadata": {
-    "note": "SKELETT att bygga vidare i. Strukturen finns, men resources ar tom med flit. Fyll i sjalv. Att gora (G): en NSG med en webbregel (portar 80 och 443), ett VNet med ett subnat, och ett storage account. For VG: lagg till en VM och koppla ihop resurserna med dependsOn. Titta i de enkla exempelfilerna for monstret: varje resurs har type, apiVersion, name, location och properties. Parametrarna har defaultvarden, sa du kan deploya direkt med: az deployment group create -g rg-novatrix --template-file miljo-skelett.json (eller gor en egen parameterfil nar du vill styra vardena)."
+    "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
   },
   "parameters": {
     "namePrefix": {
@@ -25,10 +25,40 @@
   },
   "resources": [
     {
-      "type": "Microsoft.resources/resourceGroups",
+      "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2023-05-01",
-      "name": "[variables('rgName')]",
-      "location": "[parameters('location')]"
+      "name": "[variables('nsgName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-web",
+            "properties": {
+              "priority": 1001,
+              "protocol": "Tcp",
+              "direction": "Inbound",
+              "access": "Allow",
+              "sourceAddressPrefix": "Internet",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": ["80", "443"]
+            }
+          },
+          {
+            "name": "Allow-my-SSH",
+            "properties": {
+              "priority": 1002,
+              "protocol": "Tcp",
+              "direction": "Inbound",
+              "access": "Allow",
+              "sourceAddressPrefix": " 83.251.180.30/32",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "22"
+            }
+          }
+        ]
+      }
     }
   ],
   "outputs": {
