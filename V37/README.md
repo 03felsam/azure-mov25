@@ -206,9 +206,10 @@ FÖR ATT DETTA SKA APPLICERAS I EN ANNAN MILJÖ ÄNDRA FÖLJANDE: </br>
 STORAGE_ACCOUNT = "stnovatrix17"</br>
 OCH</br>
 CONTAINER = "arenden"</br>
+Samt vilken typ av blob layout antingen root eller folder. 
+Slutligen även en HTTPS flow URL för powerautomate connections
 Till dina lokala namn på ditt storage konto och container.
 ````
-
 #cloud-config
 # V37 Utokad: web VM that serves the Novatrix ticket form AND writes each
 # ticket to Blob Storage via the VM's system-assigned managed identity.
@@ -231,11 +232,12 @@ write_files:
       # using the web VM's system-assigned managed identity. No account key is used.
       #
       # Students change STORAGE_ACCOUNT below to their own globally unique account
-      # name (the same account the provisioning script created). Nothing else needs
-      # to change for the base to work.
+      # name (the same account the provisioning script created). BLOB_LAYOUT and
+      # FLOW_URL are optional and control what happens with the ticket next.
 
       import json
       import uuid
+      import urllib.request
       from datetime import datetime, timezone
 
       from flask import Flask, request, Response
@@ -244,9 +246,18 @@ write_files:
 
       # --- Settings students may change -------------------------------------------
       # Your globally unique storage account name (no https, no .blob..., just name).
-      STORAGE_ACCOUNT = "stnovatrix17"
+      STORAGE_ACCOUNT = "stnovatrixXXXX"
       # Container that receives the tickets (created by the provisioning script).
       CONTAINER = "arenden"
+      # Where the ticket lands in the container:
+      #   "root"   -> arende-<id>.json flat in the container root. Needed for the
+      #               Power Automate Blob trigger, which only sees the root.
+      #   "folder" -> <id>/arende.json in a folder per ticket. Tidier, but the
+      #               Blob trigger does not see subfolders.
+      BLOB_LAYOUT = "root"
+      # Optional Power Automate HTTP trigger URL. Leave empty to skip. When set, the
+      # app POSTs the ticket JSON to this URL right after writing the blob.
+      FLOW_URL = ""
       # ----------------------------------------------------------------------------
 
       ACCOUNT_URL = "https://{0}.blob.core.windows.net".format(STORAGE_ACCOUNT)
@@ -262,6 +273,37 @@ write_files:
 
       def _container():
           return _blob_service.get_container_client(CONTAINER)
+
+
+      def _blob_names(ticket_id, image_filename):
+          # Returns (ticket_blob_name, image_blob_name) for the chosen layout.
+          # image_blob_name is None when no image was attached.
+          if BLOB_LAYOUT == "folder":
+              ticket_name = "{0}/arende.json".format(ticket_id)
+              image_name = "{0}/{1}".format(ticket_id, image_filename) if image_filename else None
+          else:
+              ticket_name = "arende-{0}.json".format(ticket_id)
+              image_name = "{0}-{1}".format(ticket_id, image_filename) if image_filename else None
+          return ticket_name, image_name
+
+
+      def _notify_flow(ticket):
+          # If a flow URL is configured, POST the ticket JSON to it. Wrapped in
+          # try/except so a broken or missing flow never stops the ticket from
+          # being saved. The form must always work even if the flow is down.
+          if not FLOW_URL:
+              return
+          try:
+              data = json.dumps(ticket, ensure_ascii=False).encode("utf-8")
+              req = urllib.request.Request(
+                  FLOW_URL,
+                  data=data,
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              urllib.request.urlopen(req, timeout=10)
+          except Exception:
+              pass
 
 
       @app.post("/submit")
@@ -285,22 +327,28 @@ write_files:
           }
 
           container = _container()
+          image_filename = image.filename if (image is not None and image.filename) else None
+          ticket_name, image_name = _blob_names(ticket_id, image_filename)
+          ticket["image"] = image_name or ""
 
-          # 1) Store the ticket itself as a JSON blob under its own folder.
+          # 1) Store the ticket itself as a JSON blob.
           container.upload_blob(
-              name="{0}/arende.json".format(ticket_id),
+              name=ticket_name,
               data=json.dumps(ticket, ensure_ascii=False).encode("utf-8"),
               overwrite=True,
               content_settings=ContentSettings(content_type="application/json"),
           )
 
           # 2) Store the attached image next to it, if the user sent one.
-          if image is not None and image.filename:
+          if image_name is not None:
               container.upload_blob(
-                  name="{0}/{1}".format(ticket_id, image.filename),
+                  name=image_name,
                   data=image.stream,
                   overwrite=True,
               )
+
+          # 3) Optionally notify a Power Automate HTTP flow. Never blocks the save.
+          _notify_flow(ticket)
 
           # A plain confirmation page. ASCII only, so the file survives cloud-init.
           body = (
@@ -318,7 +366,13 @@ write_files:
       @app.get("/health")
       def health():
           # Handy for a quick check that the backend is up and reading its config.
-          return {"status": "ok", "account": STORAGE_ACCOUNT, "container": CONTAINER}
+          return {
+              "status": "ok",
+              "account": STORAGE_ACCOUNT,
+              "container": CONTAINER,
+              "blob_layout": BLOB_LAYOUT,
+              "flow_configured": bool(FLOW_URL),
+          }
 
 
       if __name__ == "__main__":
@@ -428,9 +482,3 @@ runcmd:
   # (Re)load nginx so it serves the page and proxies /submit to the backend.
   - systemctl enable --now nginx
   - systemctl restart nginx
-
-
-´´´´
-
-
-  
