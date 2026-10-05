@@ -34,3 +34,6 @@ Eller genom integration i Cloud innit filen vi tidigare använt som nu är uppda
 ![alt text](Verifiering-av-steg.png)
 
 ![alt text](Verifiering-fungerar.png)
+
+Därefter kan du exportera ditt flow som en ZIP fil för importering av den som accesscontrol. Jag kan inte få Dataverse lagring att fungera eftersom jag är i en default miljö genom sättet jag skapade mina saker.
+![alt text](ZIPProblem.png)
