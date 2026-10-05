@@ -29,3 +29,8 @@ Skapa http anrop med curl kommando
 ````
 curl -X POST HTTPSFÖRÄRENDET -H "Content -Type: application/json" -d'ETTJSONEXEMPEL'
 ````
+
+Eller genom integration i Cloud innit filen vi tidigare använt som nu är uppdaterad med ett inbyggt HTTP anrop. 
+![alt text](Verifiering-av-steg.png)
+
+![alt text](Verifiering-fungerar.png)
