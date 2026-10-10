@@ -7,7 +7,7 @@
 GitHub Repo: [https://github.com/03felsam/azure-mov25](https://github.com/03felsam/azure-mov25)
 
 ## Mål
-Del 1 Dokumentation : Redogör Miljön samt val
+Del 1 Dokumentation : Redogör Miljön 
 
 - Vm - Ska hantera mellan 70 anmälningar per dygn och 300 under stress, samt 1800 inloggningar per dag till portalen (storlek på VM samt månadskostnad och uppetid)
 
@@ -62,4 +62,24 @@ Serverless fungerar på sättet att man kör kod utan att själv behöva hantera
 
 Serverless fungerar så att varje gång koden körs används resurser och man betalar utifrån användningen. Detta är otroligt simpelt att använda eftersom man inte behöver tänka lika mycket på servrar, operativsystem eller underhåll.
 
-För Nordvik hade serverless därför kunnat vara ett bra alternativ eftersom trafiken varierar mycket och är nära noll under natten. Då kan kostnaden minska när applikationen inte används. Nackdelen är däremot att serverless passar bättre för mindre separata funktioner än för en hel webbportal. Därför tycker jag att container passar bättre som huvudlösning för Nordviks portal, medan serverless-lösningar kan användas för vissa delar av systemet.
+För Nordvik hade serverless därför kunnat vara ett bra alternativ eftersom trafiken varierar mycket och är i princip noll under natten. Därför kan kostnaden minska när applikationen inte används. Nackdelen är däremot att serverless passar bättre för mindre separata funktioner än för en hel webbportal. Serverless har även ännu mindre kontroll och har vissa begränsningar som göra att det kan va svårt att konfigurea portalen på sättet nordvik vill. Därför tycker jag att container passar bättre som huvudlösning för Nordviks portal, medan serverless-lösningar kan användas för vissa delar av systemet.
+
+
+## Storage
+
+Storage kommer vara byggt på ett storage account och två containar med blob storage. Storage kontot kommer ha Public access denied med inställningen HTTPS only. Därefter kommer container appen få access genom att få read write access genom RBAC ochninte vara en admnin över hela storage accoutnet på grund av least privilege.  Containrarna kommer ha en inställning med hot storage för bilder från ärenden för biligare och enklare access för saker som används ofta, och en container med cold för kontrakt som inte används speciellt ofta. 
+
+
+##  Budget
+För att budget ska nås och inte komma med flera gömda utgifter behöver vi budgetalarm samt en shared mailbox för larm. Jag skulle sätta budget larm på runt 2000 för att vara säker på att priset inte springer iväg och vi fortfarande har 500 kr att leka med. Samt att de behöver bli taggade för ekonomisk övervakning.
+
+Använd Price calculator för att verifiera att det är rätt budget för dina inställningar.
+
+## Microsoft 365 
+Denna delen kommer innehålla en HTTPS anropan powerautomate flöde vilket tas emot när servern skickar ett ärende. Detta powerautomate flöde kommer att skicka ett ärende mail samt skapar ett nytt ärende i en sharepoint lista. Med detta ärende behöver vi en shared mailbox som kan användas av admins av systemet samt möjligtvis en teams kanal för notiser. 
+
+## Nätverk 
+Skyddad storage + vnet och subnets?
+
+##  IaC 
+Fixa ARM template för systemet samt nämn hur container appen ska skapas med relevant data på gihub.

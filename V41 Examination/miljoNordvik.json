@@ -1,0 +1,203 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.3.6",
+  "metadata": {
+    "note": " Detta schema är för att skapa resurser utöver resursgrupper. och skapar allting innuti resursgruppen"
+  },
+  "parameters": {
+    "namePrefix": {
+      "type": "string",
+      "defaultValue": "nordvik",
+      "metadata": { "description": "Prefix for alla resursnamn, sa att allt hanger ihop." }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "swedencentral",
+      "metadata": { "description": "Region for resurserna." }
+    },
+    "adminSshCidr": {
+      "type": "string",
+      "defaultValue": "83.251.180.30/32",
+      "metadata": {
+        "description": "Tillåten publik IP-adress för SSH, borde vara en range för företagets kontor."
+      }
+    }
+  },
+  "variables": {
+    "storageName": "[concat('st', toLower(parameters('namePrefix')), uniqueString(resourceGroup().id))]",
+    "vnetName": "[concat('vnet-', parameters('namePrefix'))]",
+    "nsgName" : "[concat('nsg-', parameters('namePrefix'))]",
+    "blobName": "[toLower(concat('arenden-', parameters('namePrefix')))]",
+    "NICName" : "[concat('nic-', parameters('namePrefix'))]",
+    "subnetName" : "[concat('snet-', parameters('namePrefix'))]",
+    "publicIpName": "[concat('pip-', parameters('namePrefix'), '-web')]"
+
+
+    
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2024-07-01",
+      "name": "[variables('nsgName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "Project": "[parameters('namePrefix')]",
+        "CostCenter": "IT"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-web",
+            "properties": {
+              "priority": 1001,
+              "protocol": "Tcp",
+              "direction": "Inbound",
+              "access": "Allow",
+              "sourceAddressPrefix": "Internet",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRanges": [
+                  "80",
+                  "443"
+                ]
+            }
+          },
+          {
+            "name": "Allow-my-SSH",
+            "properties": {
+              "priority": 1002,
+              "protocol": "Tcp",
+              "direction": "Inbound",
+              "access": "Allow",
+              "sourceAddressPrefix": "[parameters('adminSshCidr')]",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "22"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-07-01",
+      "name": "[variables('vnetName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "Project": "[parameters('namePrefix')]",
+        "CostCenter": "IT"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+      ],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+        {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2024-07-01",
+      "name": "[variables('publicIpName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+          "Project": "[parameters('namePrefix')]",
+          "CostCenter": "IT"  
+      },
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+
+    {
+      "type": "Microsoft.network/networkInterfaces",
+      "apiVersion": "2024-07-01",
+      "name": "[variables('NICName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+          "Project": "[parameters('namePrefix')]",
+          "CostCenter": "IT"  
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+              },
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+              }
+            }
+          }
+        ]
+      } 
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('storageName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "Standard_LRS" },
+      "kind": "StorageV2",
+      "tags": {
+          "Project": "[parameters('namePrefix')]",
+          "CostCenter": "IT"  
+      },
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[concat(variables('storageName'), '/default/', variables('blobName'))]",
+      "tags": {
+          "Project": "[parameters('namePrefix')]",
+          "CostCenter": "IT"  
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        ],
+      "properties": {
+          "publicAccess": "None"
+        }
+}
+  ],
+  "outputs": {
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageName')]"
+    },
+    "vnetName": {
+      "type": "string",
+      "value": "[variables('vnetName')]"
+    }
+  }
+}
