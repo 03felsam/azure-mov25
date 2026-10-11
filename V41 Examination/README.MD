@@ -61,6 +61,9 @@ Bilder som används ofta passar i Hot-nivån, medan äldre dokument kan flyttas 
 
 Jag använder budgetvarningar vid cirka 2 000 kr för att upptäcka kostnadsökningar och hålla mig inom målet på 2 500 kr per månad. Resurser märks med taggar för projekt och kostnadsställe. Azure Pricing Calculator kan användas för att uppskatta kostnaderna. Automatisk avstängning av VM:en nattetid minskar driftskostnaderna, men vissa resurser kan fortfarande kosta pengar.
 
+Allting som är gjort är dessutom taggat för övervakning samt verifiering.
+ ![alt text](Taggad.png)
+
 ## Microsoft 365 och automatisering
 
 Jag skapade en SharePoint-lista för felanmälningar och ett Power Automate-flöde som tar emot information från applikationen. Flödet skapar ett ärende i SharePoint och skickar e-post till relevanta mottagare. Detta förenklar hanteringen och gör det lättare att följa upp inkomna felanmälningar.
@@ -74,126 +77,227 @@ Jag konfigurerade ett virtuellt nätverk, nätverksregler (NSG), en publik IP-ad
 Jag använde en ARM-mall för att skapa de viktigaste Azure-resurserna, bland annat nätverk och Storage Account. VM:en skapades med Azure CLI och konfigurerades med cloud-init utifall att man ska skapa två för Azure load balancer och Availability set. Filerna lagras i GitHub för versionshantering och för att göra lösningen lättare att återskapa.
 
 
-# Guide för ARM template
-### Github
-Skapa först rg-nordvik resursgrupp <br/>
+# Guide för ARM Template
 
-Först loggar jag in med GitHub:
+## GitHub och förberedelser
+
+För att kunna skapa Azure-miljön behöver vi först en resursgrupp där resurserna ska placeras. I det här projektet använder jag resursgruppen `rg-nordvik`.
+
+Därefter loggar jag in på GitHub via terminalen i Visual Studio Code med följande kommando:
 
 ```bash
 gh auth login
 ```
 
-Sedan klonar jag repositoryt:
+När inloggningen är klar klonar jag repositoryt som innehåller projektets filer:
 
 ```bash
 git clone https://github.com/03felsam/azure-mov25.git
 ```
 
-Går sedan in i repositoryt:
+Gå sedan till mappen där ARM-mallen ligger vilket är i mitt fall:
 
-```bash
-cd azure-mov25\V41 Examination
+```powershell
+cd "azure-mov25\V41 Examination"
 ```
 
 ## Validering och deployment
 
-````
+Innan resurserna skapas kontrollerar jag att ARM-mallen är korrekt och att distributionen kommer att skapa de resurser som förväntas. Exempel på detta är ipadressen för SSH access.
+
+Först validerar jag mallen med följande kommando:
+
+```bash
 az deployment group validate -g rg-nordvik --template-file miljoNordvik.json
-````
-````
+```
+
+Därefter använder jag `what-if` för att se vilka ändringar som kommer att göras i Azure. Detta gör det enklare att kontrollera vilka resurser som ska skapas eller ändras innan distributionen genomförs.
+
+```bash
 az deployment group what-if -g rg-nordvik --template-file miljoNordvik.json
-````
+```
 
-````
+Innan distributionen ska relevanta inställningar i ARM-mallen kontrolleras och anpassas efter den egna miljön. Det kan exempelvis handla om nätverksregler och vilken IP-adress som ska tillåtas för SSH-anslutning.
+
+När mallen har validerats skapar jag resurserna med följande kommando:
+
+```bash
 az deployment group create -g rg-nordvik --template-file miljoNordvik.json
-````
+```
 
-
+ I mitt projekt används ARM-mallen för att skapa de grundläggande resurserna, medan den virtuella maskinen skapas separat med Azure CLI. Det gör det enklare att ändra VM-inställningar och skapa fler instanser vid behov.
 
 ## Skapa VM
 
-run i powershell på din dator med din valfria sökväg
+Skapandet av den virtuella maskinen (VM) görs separat från ARM-mallen med hjälp av Azure CLI. Detta gör det enklare att ändra inställningar och skapa flera virtuella maskiner vid behov.
 
-````
-ssh-keygen -t rsa -b 4096 -f C:\AzureMov25\ssh\ssh\id_rsa
-````
-generates it depending on where you save it
-on home pc in terminal otherwise on your user in azure
+Först genererar man ett SSH-nyckelpar på sin lokala dator med följande kommando i PowerShell eller Visual Studio Code-terminalen. Ändra sökvägen till den plats där nycklarna ska sparas. Mappen måste finnas innan kommandot körs.
 
-Använd public key för SSH 
-browsa till mappen rä du har cloudinnitfilen sparad och kör denna med ssh sökvägen som pekar mot din public SSHkey
-och ändra size för valfri 
-PLUS ÄNDRA I CLOUD INNIT FILEN 
-HTTP UTL, ROOT, STORAGENAME OCH CONTAINER NAME
-````
+```powershell
+ssh-keygen -t rsa -b 4096 -f "C:\AzureMov25\ssh\id_rsa"
+```
+
+Kommandot skapar en privat och en publik nyckel. Den publika nyckeln (`id_rsa.pub`) används när VM:en skapas, medan den privata nyckeln används för att ansluta till maskinen. Den privata nyckeln ska hållas hemlig och inte laddas upp till GitHub.
+
+Därefter behöver `cloud-init.txt` anpassas efter den egna miljön. Kontrollera särskilt följande inställningar:
+
+- Storage Account-namn.
+- Namnet på Blob Storage-containern.
+- Om filer ska sparas direkt i containern eller i en mapp/prefix.
+- URL:en till Power Automate-flödet som tar emot ärenden.
+
+När inställningarna är klara går man till mappen där `cloud-init.txt` ligger. Därefter kan VM:en skapas med följande kommando. Anpassa storlek, sökvägar och resursnamn efter den egna miljön.
+
+```powershell
 az vm create `
->>   --resource-group "rg-nordvik" `
->>   --name "vm-nordvik-web" `
->>   --nics "nic-nordvik" `
->>   --image Ubuntu2204 `
->>   --size Standard_F1als_v7 `
->>   --admin-username azureuser `
->>   --ssh-key-values "C:\AzureMov25\ssh\id_rsa.pub" `
->>   --assign-identity `
->>   --custom-data cloud-init.txt `
->>   --os-disk-size-gb 30 `
->>   --storage-sku StandardSSD_LRS `
->>   --tags Project=nordvik CostCenter:IT
-````
+  --resource-group "rg-nordvik" `
+  --name "vm-nordvik-web" `
+  --nics "nic-nordvik" `
+  --image Ubuntu2204 `
+  --size Standard_D2as_v6 `
+  --admin-username azureuser `
+  --ssh-key-values "C:\AzureMov25\ssh\id_rsa.pub" `
+  --assign-identity `
+  --custom-data "cloud-init.txt" `
+  --os-disk-size-gb 30 `
+  --storage-sku StandardSSD_LRS `
+  --tags Project=nordvik CostCenter=IT
+```
 
-Använd sedan standard på din PRIVATE key inte public
-icacls .\din-nyckel.pem /inheritance:r
+Kommandot skapar VM:en med en hanterad identitet, vilket senare används för att ge maskinen åtkomst till Blob Storage. Det förutsätter att nätverkskortet redan har skapats av ARM-mallen och att namnet stämmer.
 
-icacls .\din-nyckel.pem /grant:r "$($env:USERNAME):R"
+### Ansluta till VM:en med SSH
 
-ssh -i din-nyckel-pem azureuser@DUN-PUBLIKA-IP
+På Windows kan man vid behov begränsa åtkomsten till den privata nyckeln med följande kommandon. Byt ut sökvägen mot den faktiska platsen för nyckeln.
 
-för att ta bort kopplingen mellan SSH om du återanvänder nyckeln
- ssh-keygen -R DATORNSPUBLIKA IP
+```powershell
+icacls "C:\AzureMov25\ssh\id_rsa" /inheritance:r
+icacls "C:\AzureMov25\ssh\id_rsa" /grant:r "$($env:USERNAME):R"
+```
 
-Gå sedan denna vägen för att lägga till blob access för din VM 
+Hämta därefter VM:ens publika IP-adress från Azure-portalen och anslut med SSH:
 
-**rg-nordvik -> stnordvikxxxxx -> Åtkomstkontroll(IAM) -> Rolltilldelningar -> Lägg till rolltilldelning**
+```powershell
+ssh -i "C:\AzureMov25\ssh\id_rsa" azureuser@DIN-PUBLIKA-IP
+```
 
-Därefter lägg till rollen **Storage Blob Data-deltagare** på den hanterade identiteten för **vm-novatrix-web**
+### Ge VM:en åtkomst till Blob Storage
 
-slutligen ska det se ut såhär.
-![alt text](Vm-storage-role.png)
+För att VM:en ska kunna ladda upp filer till Blob Storage måste dess hanterade identitet få rätt behörighet.
 
-# Extra tjänster
+I Azure-portalen går man till:
 
-## VM hantering
+**Resource Group → Storage Account → Åtkomstkontroll (IAM) → Lägg till rolltilldelning**
 
-Valet för vilken storlek våran VM ska ha är standard_d2as_v6 vilket kostar run 70 euro per månad.
+Tilldela rollen **Storage Blob Data Contributor** till den hanterade identiteten för `vm-nordvik-web`. Rollen ger möjlighet att läsa, skriva och ta bort blobbar. För bättre säkerhet bör behörigheten begränsas till den container som applikationen behöver använda, om det är möjligt.
 
-skapade automatisk avstängning av VM på mitten av natten.
-![alt text](automaticavstängning.png)
+Efter tilldelningen ska konfigurationen motsvara skärmbilden nedan.
 
+![Rolltilldelning för VM:ens åtkomst till Blob Storage](Vm-storage-role.png)
 
+## Extra tjänster
 
-![alt text](Success.png)
+### VM-hantering
 
-````
-$SubsciptionId = "DIN ID"
+Jag valde storleken `Standard_D2as_v6` som utgångspunkt för VM:en. Den har två virtuella processorkärnor och 8 GiB RAM. Den slutliga kapaciteten behöver verifieras genom tester av belastingen, särskilt eftersom Nordvik kan ha perioder med upp till 300 anmälningar per timme under kriser. Men borde fungera bra då den rekomenderas av microsoft för standard appar. 
+
+För att minska kostnaderna har jag konfigurerat automatisk avstängning vid midnatt. Jag har även skapat ett Azure Automation-konto med en Runbook som startar VM:en igen klockan 06.00 varje morgon.
+
+![Konfiguration för automatisk avstängning](automaticavstängning.png)
+
+Runbooken innehåller följande PowerShell-kod:
+
+```powershell
+$SubscriptionId = "DITT-SUBSCRIPTION-ID"
 
 Connect-AzAccount -Identity
-
-Set-AzContext -SubscriptionId $SubsciptionId
+Set-AzContext -SubscriptionId $SubscriptionId
 
 Start-AzVM -ResourceGroupName "rg-nordvik" -Name "vm-nordvik-web"
-````
+```
 
-![alt text](schemalagd.png)
+För att koden ska fungera måste Automation-kontots hanterade identitet vara aktiverad och ha rätt behörighet att starta VM:en, exempelvis rollen **Virtual Machine Contributor** vilket i detta fallet är våra **rg-nordvik** grupp.
+
+![Resultat från körningen av Runbook](Success.png)
+
+Slutligen kopplade jag Runbooken till ett schema som startar VM:en klockan 06.00 varje morgon.
+
+![Schema för schemalagd uppstart](schemalagd.png)
+
+Detta minskar tiden som VM:en är igång och kan därmed minska kostnaden. Däremot innebär avstängningen att appen inte är tillgänglig under natten. 
+
 ## Storage
-![alt text](coldstorage.png)
 
- Skapade en tilldelning som körs varje 30 dagar och appliceras på alla blobar i storage accountet och automatiskt stoppar allting i cold storage.
+Jag har skapat ett Storage Account med två Blob Storage-containrar. Den ena används för bilder och filer som hör till inkomna ärenden. Den andra, `coldstorage`, är tänkt för kontrakt och andra dokument som inte behöver användas lika ofta.
 
- ![alt text](Tilldelnignstorage.png)
+Jag har även konfigurerat en livscykelregel som flyttar blobbar som är äldre än 90 dagar till **Cold-nivån**. Regeln hjälper till att minska lagringskostnaderna för filer som sällan används.
 
+Cold är en lagringsnivå för data som fortfarande behöver vara tillgänglig online, men som används mer sällan än data i Hot-nivån. Archive är ett billigare alternativ för långtidslagring, men kräver att data återställs innan den kan läsas igen.
 
- ## Power automate
+Det är viktigt att livscykelregeln bara omfattar de filer som ska flyttas till Cold. Därför bör regeln begränsas till rätt container eller prefix, så att aktiva ärendebilder inte flyttas av misstag. Azure utvärderar livscykelregler automatiskt, så flytten behöver inte ske exakt på den dag då en fil blir 90 dagar gammal.
 
- ## Sharepoint
+![Konfiguration av livscykelregeln för Blob Storage](coldstorage.png)
 
+![Konfiguration för Storage-kontot](Tilldelnignstorage.png)
+
+## Power Automate
+
+För att koppla samman Azure-applikationen med Microsoft 365 har jag lagt in en HTTP-anropsadress till ett Power Automate-flöde i `cloud-init.txt`. Adressen konfigureras när VM:en skapas och används av applikationen när ett nytt ärende skickas in.
+
+![Power Automate-flödet](powerAutomate.png)
+
+Flödet tar emot informationen från applikationen, skapar ett nytt objekt i en SharePoint-lista på vår kommunikationswebbplats och skickar ett e-postmeddelande till en delad brevlåda för administratörer. På så sätt kan personalen ta emot och följa upp ärenden utan att behöva kontrollera applikationen manuellt.
+
+För versionshantering har jag exporterat flödet som en ZIP-fil och sparat dess definition i JSON-format. Det gör det enklare att dokumentera flödet och återskapa det vid behov.
+
+![Översikt över Power Automate-flödet](Flowscheme.png)
+
+## SharePoint
+
+Jag har skapat en SharePoint Communication Site som bara en behörig grupp har åtkomst till. På webbplatsen finns en lista över felanmälningar. När en användare skickar in ett ärende via applikationen skapas en ny post i listan med information om ärendet.
+
+Bilden lagras separat i Blob Storage i stället för direkt i SharePoint-listan. Detta skiljer ärendeinformationen från filhanteringen och gör det möjligt att hantera bilderna i Azure Storage.
+
+Behörigheterna i SharePoint begränsas ArendeHanterare för att garantera säkerhet angående personuppgifter.
+
+![Behörigheter för SharePoint](SharepointRBAC.png)
+
+## Nätverk och säkerhet
+
+VM:en använder ett virtuellt nätverk, ett nätverkskort och en publik IP-adress. Nätverkstrafiken styrs med en Network Security Group (NSG). Webbtrafik tillåts via port 80 och 443, medan SSH via port 22 begränsas till administratörens IP-adress. I produktion bör denna regel ändras till kontorets privata nätverk för att garantera att flera kan jobba mot dator samtidigt och det inte är begränsat till en administratörs dator.
+
+Här är våra säkerhetsinställningar vilket löser de grundläggande nätverksproblemen.
+
+![alt text](NSGVerifiering.png)
+
+Storage Account är konfigurerat för att kräva HTTPS och anonym publik åtkomst till blobbar är avstängd. VM:en använder sin hanterade identitet för att få åtkomst till lagringen i stället för att lagra inloggningsuppgifter i applikationen.
+
+Slutligen har även storagekontot begränsad access med bara Admingruppen som har tillgång våran arende kontainer.
+![alt text](Adminaccess.png)
+
+## Kostnader
+
+Jag använde Azure Pricing Calculator faör att uppskatta kostnaderna för virtuella maskiner, Storage Account, virtuellt nätverk och IP-adresser. Beräkningen gav en uppskattning på cirka **1 130 kr per månad** för de resurser som ingick i kalkylen.
+
+Det ger utrymme inom budgetmålet på 2 500 kr per månad, men kostnaden beror på faktisk användning, region, lagringsmängd och trafik. Automatisk avstängning kan minska kostnaden för VM-beräkning, men exempelvis diskar och vissa andra resurser kan fortfarande kosta pengar när VM:en är avstängd.
+
+Beräkningen omfattar inte nödvändigtvis Power Automate Premium eller eventuella extra Microsoft 365-licenser. Dessa behöver kontrolleras separat för att få en fullständig kostnadsbild.
+
+[Azure Pricing Calculator – min beräkning](https://azure.com/e/10ff0fd46a8d4abbacd04b9fe44c7856)
+
+## Geomgång att allting fungerar
+Slutligen har  vi ett serie med screenshots som följer ärendet hela vägen.
+
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+Vårat ärende nummer 20261011T182318Z-2627d0e9 för verifiering.
+
+![alt text](image-2.png)
+
+![alt text](image-3.png)
+
+![alt text](image-4.png)
+
+![alt text](image-5.png)
