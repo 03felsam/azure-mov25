@@ -6,34 +6,12 @@
 
 GitHub Repo: [https://github.com/03felsam/azure-mov25](https://github.com/03felsam/azure-mov25)
 
-## Mål
-Del 1 Dokumentation : Redogör Miljön 
+## Design av nordvik
 
-- Vm - Ska hantera mellan 70 anmälningar per dygn och 300 under stress, samt 1800 inloggningar per dag till portalen (storlek på VM samt månadskostnad och uppetid)
+För denna examination samt konfiguration av deras teoretiska miljö kommer detta första kapitel förklarar delarna som bygger upp nordvik samt valen jag har gjort för fylla nordviks krav.
+Senare i denna readme kommer jag dyka in i detaljer om varje område samt hur det är uppbyggt.
 
-- Budget 2500 kr per månad vill inte betala för kapacitet som står oanvänd nattetid, Ekonomi vill kunna följa kostnad per fastiget så resurser ska vara taggade?
-
-- Lagring: 5-10 GB per år av aktivt använda bilder för ärenden
-40 gig för sällan använda kontrakt (hot and cold storage med två olika containrar) 
-
-- Uptime ska vara 99,,5% av kontorstid (vet inte riktigt)
-
-- Tillväxt ska kunna resa en likadant test eller demomiljö snabbt (gör kod)  
-
-- Säkerhet RBAC och begränsad access till bland annat VM samt blobstorage
-
-
-
-
-Del 2 Praktisk del
-
-
-
-
-
-
-##
-
+## Portal jämförende
 För valen av Central azure tjänst för portalen kan vi välja mellan att använda en VM, Container eller Serverless lösning. För att välja vilken typ som passar best för Nordviks miljö behöver vi göra ett flertal listor med positiva och negativa delar.
 
 ### VM
@@ -45,6 +23,7 @@ Dessutom är VM-kostnaden en konstant kostnad så länge den är uppsatt, vilket
 En annan anledning till att en VM inte skulle passa är att för att uppfylla kravet på 99,95 % uptime under kontorstid behöver vi enligt [Microsoft Learn – Availability sets overview](https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview) använda två VM:ar för att nå kravet. Detta skulle göra lösningen både dyrare och mer komplicerad.
 
 Slutligen är skalningen av en VM ganska bra, men den blir mer komplicerad när flera VM:ar behöver läggas till och hanteras. Därför tycker jag att en VM blir mer arbete och kostnad än vad Nordvik behöver för denna portal.
+
 
 ### Container
 
@@ -65,21 +44,156 @@ Serverless fungerar så att varje gång koden körs används resurser och man be
 För Nordvik hade serverless därför kunnat vara ett bra alternativ eftersom trafiken varierar mycket och är i princip noll under natten. Därför kan kostnaden minska när applikationen inte används. Nackdelen är däremot att serverless passar bättre för mindre separata funktioner än för en hel webbportal. Serverless har även ännu mindre kontroll och har vissa begränsningar som göra att det kan va svårt att konfigurea portalen på sättet nordvik vill. Därför tycker jag att container passar bättre som huvudlösning för Nordviks portal, medan serverless-lösningar kan användas för vissa delar av systemet.
 
 
+### Val av faktisk lösning
+
+Även om Container Apps bedömdes vara den bästa lösningen för Nordviks varierande trafik valde jag att använda en virtuell Linux-maskin (VM) för portalen. Anledningen var att jag inte lyckades integrera applikationen korrekt i Azure Container Apps inom tidsbegränsningen. Jag valde därför slutligen att få en fungerande portal med det jag kan.
+
+VM-lösningen ger mig god kontroll över miljön, men innebär mer driftansvar och att jag behöver hantera uppstart, avstängning och uppdateringar. Jag har därför konfigurerat automatisk avstängning nattetid och arbetat med schemalagd uppstart för att minska onödiga kostnader över nattetid. Lösningen är dessutom inte riktigt korrekt konfigurera. Eftersom för att lösa alla proble ska man sätta upp en azure load balancer och Azure avilability set med 2 VM's för tillgänglighets kravet på 99.5% av office tid och att en instans faller av. 
+
+## Storage och säkerhet
+
+Jag skapade ett Azure Storage Account med Blob Storage för att lagra bilder från felanmälningar och andra filer. Anonym publik åtkomst är avstängd och HTTPS krävs. VM:ens Managed Identity får åtkomst till lagringen via RBAC med rollen **Storage Blob Data Contributor**, vilket följer principen om minsta möjliga behörighet.
+
+Bilder som används ofta passar i Hot-nivån, medan äldre dokument kan flyttas till Cold med hjälp av en livscykelregel.
+
+
+## Kostnader och budget
+
+Jag använder budgetvarningar vid cirka 2 000 kr för att upptäcka kostnadsökningar och hålla mig inom målet på 2 500 kr per månad. Resurser märks med taggar för projekt och kostnadsställe. Azure Pricing Calculator kan användas för att uppskatta kostnaderna. Automatisk avstängning av VM:en nattetid minskar driftskostnaderna, men vissa resurser kan fortfarande kosta pengar.
+
+## Microsoft 365 och automatisering
+
+Jag skapade en SharePoint-lista för felanmälningar och ett Power Automate-flöde som tar emot information från applikationen. Flödet skapar ett ärende i SharePoint och skickar e-post till relevanta mottagare. Detta förenklar hanteringen och gör det lättare att följa upp inkomna felanmälningar.
+
+## Nätverk och åtkomst
+
+Jag konfigurerade ett virtuellt nätverk, nätverksregler (NSG), en publik IP-adress och ett nätverkskort för VM:en. Trafik till webbplatsen tillåts via port 80 och 443, medan SSH-åtkomst via port 22 begränsas till administratörens IP-adress. För en produktionslösning behöver HTTPS vara korrekt konfigurerat.
+
+## Infrastructure as Code
+
+Jag använde en ARM-mall för att skapa de viktigaste Azure-resurserna, bland annat nätverk och Storage Account. VM:en skapades med Azure CLI och konfigurerades med cloud-init utifall att man ska skapa två för Azure load balancer och Availability set. Filerna lagras i GitHub för versionshantering och för att göra lösningen lättare att återskapa.
+
+
+# Guide för ARM template
+### Github
+Skapa först rg-nordvik resursgrupp <br/>
+
+Först loggar jag in med GitHub:
+
+```bash
+gh auth login
+```
+
+Sedan klonar jag repositoryt:
+
+```bash
+git clone https://github.com/03felsam/azure-mov25.git
+```
+
+Går sedan in i repositoryt:
+
+```bash
+cd azure-mov25\V41 Examination
+```
+
+## Validering och deployment
+
+````
+az deployment group validate -g rg-nordvik --template-file miljoNordvik.json
+````
+````
+az deployment group what-if -g rg-nordvik --template-file miljoNordvik.json
+````
+
+````
+az deployment group create -g rg-nordvik --template-file miljoNordvik.json
+````
+
+
+
+## Skapa VM
+
+run i powershell på din dator med din valfria sökväg
+
+````
+ssh-keygen -t rsa -b 4096 -f C:\AzureMov25\ssh\ssh\id_rsa
+````
+generates it depending on where you save it
+on home pc in terminal otherwise on your user in azure
+
+Använd public key för SSH 
+browsa till mappen rä du har cloudinnitfilen sparad och kör denna med ssh sökvägen som pekar mot din public SSHkey
+och ändra size för valfri 
+PLUS ÄNDRA I CLOUD INNIT FILEN 
+HTTP UTL, ROOT, STORAGENAME OCH CONTAINER NAME
+````
+az vm create `
+>>   --resource-group "rg-nordvik" `
+>>   --name "vm-nordvik-web" `
+>>   --nics "nic-nordvik" `
+>>   --image Ubuntu2204 `
+>>   --size Standard_F1als_v7 `
+>>   --admin-username azureuser `
+>>   --ssh-key-values "C:\AzureMov25\ssh\id_rsa.pub" `
+>>   --assign-identity `
+>>   --custom-data cloud-init.txt `
+>>   --os-disk-size-gb 30 `
+>>   --storage-sku StandardSSD_LRS `
+>>   --tags Project=nordvik CostCenter:IT
+````
+
+Använd sedan standard på din PRIVATE key inte public
+icacls .\din-nyckel.pem /inheritance:r
+
+icacls .\din-nyckel.pem /grant:r "$($env:USERNAME):R"
+
+ssh -i din-nyckel-pem azureuser@DUN-PUBLIKA-IP
+
+för att ta bort kopplingen mellan SSH om du återanvänder nyckeln
+ ssh-keygen -R DATORNSPUBLIKA IP
+
+Gå sedan denna vägen för att lägga till blob access för din VM 
+
+**rg-nordvik -> stnordvikxxxxx -> Åtkomstkontroll(IAM) -> Rolltilldelningar -> Lägg till rolltilldelning**
+
+Därefter lägg till rollen **Storage Blob Data-deltagare** på den hanterade identiteten för **vm-novatrix-web**
+
+slutligen ska det se ut såhär.
+![alt text](Vm-storage-role.png)
+
+# Extra tjänster
+
+## VM hantering
+
+Valet för vilken storlek våran VM ska ha är standard_d2as_v6 vilket kostar run 70 euro per månad.
+
+skapade automatisk avstängning av VM på mitten av natten.
+![alt text](automaticavstängning.png)
+
+
+
+![alt text](Success.png)
+
+````
+$SubsciptionId = "DIN ID"
+
+Connect-AzAccount -Identity
+
+Set-AzContext -SubscriptionId $SubsciptionId
+
+Start-AzVM -ResourceGroupName "rg-nordvik" -Name "vm-nordvik-web"
+````
+
+![alt text](schemalagd.png)
 ## Storage
+![alt text](coldstorage.png)
 
-Storage kommer vara byggt på ett storage account och två containar med blob storage. Storage kontot kommer ha Public access denied med inställningen HTTPS only. Därefter kommer container appen få access genom att få read write access genom RBAC ochninte vara en admnin över hela storage accoutnet på grund av least privilege.  Containrarna kommer ha en inställning med hot storage för bilder från ärenden för biligare och enklare access för saker som används ofta, och en container med cold för kontrakt som inte används speciellt ofta. 
+ Skapade en tilldelning som körs varje 30 dagar och appliceras på alla blobar i storage accountet och automatiskt stoppar allting i cold storage.
+
+ ![alt text](Tilldelnignstorage.png)
 
 
-##  Budget
-För att budget ska nås och inte komma med flera gömda utgifter behöver vi budgetalarm samt en shared mailbox för larm. Jag skulle sätta budget larm på runt 2000 för att vara säker på att priset inte springer iväg och vi fortfarande har 500 kr att leka med. Samt att de behöver bli taggade för ekonomisk övervakning.
+ ## Power automate
 
-Använd Price calculator för att verifiera att det är rätt budget för dina inställningar.
+ ## Sharepoint
 
-## Microsoft 365 
-Denna delen kommer innehålla en HTTPS anropan powerautomate flöde vilket tas emot när servern skickar ett ärende. Detta powerautomate flöde kommer att skicka ett ärende mail samt skapar ett nytt ärende i en sharepoint lista. Med detta ärende behöver vi en shared mailbox som kan användas av admins av systemet samt möjligtvis en teams kanal för notiser. 
-
-## Nätverk 
-Skyddad storage + vnet och subnets?
-
-##  IaC 
-Fixa ARM template för systemet samt nämn hur container appen ska skapas med relevant data på gihub.

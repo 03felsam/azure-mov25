@@ -28,6 +28,7 @@
     "vnetName": "[concat('vnet-', parameters('namePrefix'))]",
     "nsgName" : "[concat('nsg-', parameters('namePrefix'))]",
     "blobName": "[toLower(concat('arenden-', parameters('namePrefix')))]",
+    "secondblobName": "[toLower(concat('coldstorage-', parameters('namePrefix')))]",
     "NICName" : "[concat('nic-', parameters('namePrefix'))]",
     "subnetName" : "[concat('snet-', parameters('namePrefix'))]",
     "publicIpName": "[concat('pip-', parameters('namePrefix'), '-web')]"
@@ -188,7 +189,23 @@
       "properties": {
           "publicAccess": "None"
         }
-}
+    
+},      
+{
+"type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[concat(variables('storageName'), '/default/', variables('secondblobName'))]",
+      "tags": {
+          "Project": "[parameters('namePrefix')]",
+          "CostCenter": "IT"  
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+        ],
+      "properties": {
+          "publicAccess": "None"
+        }
+      }
   ],
   "outputs": {
     "storageAccountName": {
