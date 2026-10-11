@@ -20,7 +20,7 @@ Att portalen finns på en uppsatt VM innebär att du har en hel dator som du beh
 
 Dessutom är VM-kostnaden en konstant kostnad så länge den är uppsatt, vilket innebär att det är en kostnad som kommer att finnas även under nattetid. Detta var specifikt nämnt i budgeten där **Nordvik vill inte betala för kapacitet som står oanvänd nattetid**, vilket är en av anledningarna till att jag tror att detta är fel val när det gäller att ha en VM som host för portalen.
 
-En annan anledning till att en VM inte skulle passa är att för att uppfylla kravet på 99,95 % uptime under kontorstid behöver vi enligt [Microsoft Learn – Availability sets overview](https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview) använda två VM:ar för att nå kravet. Detta skulle göra lösningen både dyrare och mer komplicerad.
+En annan anledning till att en VM inte skulle passa är att för att uppfylla kravet på 99,5 % uptime under kontorstid behöver vi enligt [Microsoft Learn – Availability sets overview](https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview) använda två VM:ar för att nå kravet. Detta skulle göra lösningen både dyrare och mer komplicerad.
 
 Slutligen är skalningen av en VM ganska bra, men den blir mer komplicerad när flera VM:ar behöver läggas till och hanteras. Därför tycker jag att en VM blir mer arbete och kostnad än vad Nordvik behöver för denna portal.
 
@@ -46,9 +46,9 @@ För Nordvik hade serverless därför kunnat vara ett bra alternativ eftersom tr
 
 ### Val av faktisk lösning
 
-Även om Container Apps bedömdes vara den bästa lösningen för Nordviks varierande trafik valde jag att använda en virtuell Linux-maskin (VM) för portalen. Anledningen var att jag inte lyckades integrera applikationen korrekt i Azure Container Apps inom tidsbegränsningen. Jag valde därför slutligen att få en fungerande portal med det jag kan.
+Även om Container Apps bedömdes vara den bästa lösningen för Nordviks varierande trafik valde jag att använda en virtuell Linux-maskin (VM) för portalen. Anledningen var att jag inte lyckades integrera applikationen korrekt i Azure Container Apps inom tidsbegränsningen. Jag valde därför slutligen att få en fungerande portal med det jag kan även om det innebär att vara bristfälligt.
 
-VM-lösningen ger mig god kontroll över miljön, men innebär mer driftansvar och att jag behöver hantera uppstart, avstängning och uppdateringar. Jag har därför konfigurerat automatisk avstängning nattetid och arbetat med schemalagd uppstart för att minska onödiga kostnader över nattetid. Lösningen är dessutom inte riktigt korrekt konfigurera. Eftersom för att lösa alla proble ska man sätta upp en azure load balancer och Azure avilability set med 2 VM's för tillgänglighets kravet på 99.5% av office tid och att en instans faller av. 
+VM-lösningen ger mig dock god kontroll över miljön, men innebär mer driftansvar och att jag behöver hantera uppstart, avstängning och uppdateringar. Jag har därför konfigurerat automatisk avstängning nattetid och arbetat med schemalagd uppstart för att minska onödiga kostnader över nattetid. Lösningen kommer som nämnt tidigare inte vara korrekt konfigurerad på grund av azure load balancer och Azure avilability. Detta är eftersom jag behöver ett sett med 2 VM's för tillgänglighets kravet på 99.5% av office tid och att en instans faller av som nämndes tidigare. Detta är ett stort problem som jag inte kan lösa under den tilldelade tiden och borde konfigureras upp snarast.
 
 ## Storage och säkerhet
 
