@@ -128,13 +128,14 @@ curl -v http://$(az container show -g novatrix -n novatrix1706-app --query ipAdd
 
 För containerlösningen kontrollerar jag att våran image finns i Azure Container Registry, att containern körs och att webbservern svarar.
 
-Det görs genom att kontrollera containerns tillstånd och testa webbserverns HTTP-svar med kommandona i avsnitt 2.4.
-
+Det görs genom att kontrollera containerns tillstånd och testa webbserverns HTTP-svar med kommandona i avsnitt 2.4. <br/>
+Bild på uppskapad resurs.
+![alt text](image.png)
 ## 4. Jämförelse av virtualiseringsnivåer
 
 ### 4.1 Virtuell maskin (VM)
 
-En virtuell maskin emulerar en dator med ett eget operativsystem. Jag ansvarar för operativsystemet, uppdateringar, installation av programvara, konfiguration och drift av applikationen.
+En virtuell maskin emulerar en dator med ett eget operativsystem. Där jag ansvarar för operativsystemet, uppdateringar, installation av programvara, konfiguration och drift av applikationen.
 
 **Fördelar:**
 - Stor kontroll över operativsystem och miljö.
@@ -150,7 +151,7 @@ För Novatrix passar en VM om kundtjänstapplikationen behöver en egen servermi
 
 ### 4.2 Containers
 
-En container paketerar applikationen och dess beroenden i en avbildning. Containern delar värdsystemets operativsystemkärna, till skillnad från en VM som har ett eget operativsystem.
+En container paketerar applikationen och dess beroenden i en Image. Containern delar värdsystemets operativsystemkärna, till skillnad från en VM som har ett eget operativsystem.
 
 Med Azure Container Instances kan en container köras utan att jag behöver administrera en hel virtuell maskin.
 
@@ -161,7 +162,7 @@ Med Azure Container Instances kan en container köras utan att jag behöver admi
 - Passar webbkomponenter och tjänster som kan paketeras i en container.
 
 **Nackdelar:**
-- Applikationen måste paketeras och byggas som en containeravbildning.
+- Applikationen måste paketeras och byggas som en image.
 - Lagring, nätverk och autentisering behöver fortfarande konfigureras.
 - En container innebär inte automatiskt hög tillgänglighet eller automatisk skalning.
 
@@ -178,8 +179,8 @@ Serverless innebär att molnplattformen hanterar den underliggande infrastruktur
 
 **Nackdelar:**
 - Kallstarter kan ge fördröjning när en funktion startar efter att ha varit inaktiv.
-- Körmiljön och exekveringsmodellen har begränsningar.
-- Integrationer, autentisering och beständig lagring måste fortfarande byggas och konfigureras.
+- Körmiljön och appens design har begränsningar.
+- Integrationer, autentisering och lagring måste fortfarande byggas och konfigureras.
 
 För Novatrix kan Azure Functions passa mottagningen av ett ärende via HTTP, särskilt om belastningen varierar mycket. Funktionen behöver dock kompletteras med logik som sparar eller skickar vidare ärendet.
 
@@ -203,170 +204,3 @@ En VM ger stor kontroll men kräver mer underhåll. En container gör det enklar
 För själva ärendemottagningen skulle jag därför välja Azure Functions som ett möjligt alternativ när funktionen ska ta emot HTTP-anrop och skicka ärendet vidare till lagring eller Power Automate. Containerlösningen är samtidigt ett användbart alternativ för att köra en separat webbkomponent.
 
 Det är viktigt att skilja på att ta emot ett ärende och att faktiskt behandla det. Ett HTTP-svar från en funktion visar att anropet har besvarats, men för att hela kundtjänstflödet ska fungera behöver ärendet också sparas och skickas vidare.
-
-## 6. Slutsats
-
-I den här uppgiften har jag dokumenterat två alternativa sätt att köra delar av Novatrix kundtjänst i Azure: containers med Azure Container Instances och en HTTP-trigger med Azure Functions.
-
-Lösningarna illustrerar olika nivåer av abstraktion. En VM ger mest kontroll över servermiljön, containers paketerar applikationen i en portabel avbildning och serverless gör det möjligt att köra kod utifrån händelser utan att själv hantera en server.
-
-För Novatrix beror valet på vilken del av systemet som ska köras, hur belastningen varierar och hur mycket driftansvar man vill ha. Azure Functions kan passa själva mottagningen av ärenden, medan en container kan passa en separat webbkomponent.
-
-För att färdigställa uppgiften ska jag säkerställa att testerna visar att de alternativa lösningarna fungerar och att dokumentationen innehåller skärmbilder från verifieringen.
-
-
-
-
-
-# V41 – 
-
-**Av Felix Samuelsson**
-
-**Kurs: Microsoft Azure**
-
-GitHub Repo: [https://github.com/03felsam/azure-mov25](https://github.com/03felsam/azure-mov25)
-## Mål
-- Kör appen på minst en alternativ nivå
-- Förklara vm, containers, serverless och skillnaderna 
-- Vilar på förklaring det är den som bedöms.
-
-Bindings kopplar data  in och ut <br/>
-Cold start<br/>
-Kostnad skalning och drift skillnader <br/>
-Motivera valet efter novatrix's behov <br/>
-
-## Dockerfile
-
-FROM nginx:alpine
-
-COPY index.html /usr/share/nginx/html/index.html
-
-EXPOSE 80
-
-## Prepp innan start
-Resursgruppen måste finnas. Skapa den först (alla kommandon pekar på den) 
-az group create --name rg-novatrix --location swedencentral
-
-Registrera allt registrary som vi behöver. (En gång per premuration)
-
-````
-az provider register --namespace Microsoft.ContainerRegistry
-````
-````
-az provider register --namespace Microsoft.ContainerInstance
-````
-````
-az provider register --namespace Microsoft.Web
-````
-````
-az provider register --namespace Microsoft.Storage
-````
-````
-az provider register --namespace microsoft.insights
-````
-Slå på admin-konto (om ni inte vill använda hanterad identitet)
-````
-az acr update --name novatrixacr --admin-enabled true
-````
-````
-Hämta lösenord för admin-kontot
-az acr credential show --name novatrixacr
-````
-
- ## Enligt video checka loggar och etc
-
-
-az acr repository list --name novatrixacr --output table
-
-az acr credential show --name novatrixacr
-
-**kan byta fqnd till ip** <br/>
-az container show --resource-group rg-novatrix --name novatrix-app --query ipAdress.fqdn -o tsv
-
-
-**för loggar** <br/>
-az container longs --resource-group rg-novatrix --name novatrix-app
-
-
-## skapa function app
-
-Hämta lösenord för admin-kontot
-````
-az acr credential show --name novatrixacr1706
-````
-````
-az acr create --name novatrixacr --sku Basic
-````
-Skapa containern (byt ut den fetstilta texten mot era egna värden)
-```` 
-az container create --resource-group novatrix --name novatrix1706-app --image novatrixacr1706.azurecr.io/novatrix-app:v1 --os-type Linux --cpu 1 --memory 1 --ports 80 --dns-name-label novatrix1706-app --registry-username novatrixacr1706 --registry-password "ANVÄND DITT REGISTER PASSWORD"
-````
-
-**storage accoutn skapning** <br/>
-az storage account create --resource-group rg-novatrix --name novatrixstorage --location swedencentral -sku Standard LRS
-
-az functionapp create --resource-group rg-novatrix --name novatrix-fn --storage account stnovatrix --consumption-plan-location swedencentral --runtime node --functions-version 4 --os-type Windows
-
-az functionapp show --resource-group rg-novatrix --name novatrix-fn -o table
-
-Skapa upp funktioner i portalen för novatrix-fn appen **Overview -> Functions -> Create in azure portal**
-
-Skapa en HTTP trigger som template med ett relevant namn som arende-HTTP-trigger
-
-Där kan du lägga in javascript kod lärarens exempel 
-````
-module.exports = async function (context,req) (
-    context.log("Novatrix arendemottagning kordes.");
-    context.res = {status: 200, body: "Arende mottaget, tack"};
-);
-````
-
-Du kan göra detta genom kod genom att trycka ut detta som pyton kod till din webbapp 
-
-## Verifiering
- i http trigger vi satte upp finns det ett get function URL (Default(Function key)) där du kan kopiera en länk och pastea den i webbläsaren för att se vilket svar man får vid inlämning av ett ärende 
-
- Därefter kan du gå in på loggs och refresha function keyn URL och se på loggs om det fungerar.
-
- kan köras från terminal genom att göra:
- ````
- curl PASTE-URL-HERE 
- ```` 
- Verifiera att du får rätt svar och det fungerar!
-
-
-
-## 
-Resursgruppen måste finnas. Skapa den först (alla kommandon pekar på den) 
-az group create --name rg-novatrix --location swedencentral
-
-Registrera resursleverantörerna (en gång per prenumeration)
-
-Skapa Register:
-````
-az acr create --resource-group novatrix --name novatrixacr1706 --sku Basic
-````
-
-Browsa till rätt mapp med dockerfile och kör detta.
-````
-az acr build --registry novatrixacr1706 --image novatrix-app:v1 .
-````
-
-Verifiera att den funkar:
-````
-az acr repository list --name novatrixacr1706 --output table
-````
-
-Slå på admin-konto (om ni inte vill använda hanterad identitet)
-````
-az acr update --name novatrixacr1706 --admin-enabled true
-````
-
-
-
-````
-az container show -g novatrix -n novatrix1706-app --query "{state:instanceView.state, ip:ipAddress.ip}" -o table
-````
-````
-curl -s -o /dev/null -w "%{http_code}\n" https://$(az container show -g novatrix -n novatrix1706-app --query ipAdress.ip -o tsv)/ 
-````
